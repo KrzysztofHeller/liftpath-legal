@@ -1,0 +1,29 @@
+#!/bin/sh
+# Odrzuca push Claude Code do chronionych branchy (zwykły, force i usunięcie).
+# Dotyczy tylko powłok Claude Code (CLAUDECODE=1) — ręczne pushe użytkownika przechodzą.
+# Claude wnosi zmiany do main wyłącznie przez PR (gh pr merge merguje po stronie serwera).
+#
+# Instalacja (raz na klon, w głównym checkoucie; ścieżka absolutna, żeby działało też
+# w worktree na branchach sprzed dodania .githooks):
+#   git config core.hooksPath "$(git rev-parse --show-toplevel)/.githooks"
+
+protected="main master stage"
+
+[ "$CLAUDECODE" = "1" ] || exit 0
+
+blocked=""
+while read -r local_ref local_sha remote_ref remote_sha; do
+  for branch in $protected; do
+    if [ "$remote_ref" = "refs/heads/$branch" ]; then
+      blocked="$blocked $branch"
+    fi
+  done
+done
+
+if [ -n "$blocked" ]; then
+  echo "pre-push: push odrzucony — Claude nie pushuje do chronionych branchy:$blocked" >&2
+  echo "Zmiany do main/stage tylko przez PR. Nie obchodź tego (--no-verify, core.hooksPath) — poproś użytkownika." >&2
+  exit 1
+fi
+
+exit 0
