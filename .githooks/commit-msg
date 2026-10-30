@@ -1,0 +1,21 @@
+#!/bin/sh
+# Odrzuca commity z atrybucją Claude/AI (Co-Authored-By, „Generated with Claude Code”).
+# Awaryjne obejście: git commit --no-verify
+#
+# Instalacja (raz na klon, w głównym checkoucie; ścieżka absolutna, żeby działało też
+# w worktree na branchach sprzed dodania .githooks):
+#   git config core.hooksPath "$(git rev-parse --show-toplevel)/.githooks"
+
+msg_file="$1"
+
+hits=$(grep -v '^#' "$msg_file" | grep -n -i -E \
+  'co-authored-by:.*(claude|anthropic)|noreply@anthropic\.com|generated (with|by) .*claude|claude\.(ai|com)/(code|claude-code)')
+
+if [ -n "$hits" ]; then
+  echo "commit-msg: commit odrzucony — wiadomość zawiera atrybucję Claude/AI:" >&2
+  echo "$hits" | sed 's/^/  /' >&2
+  echo "Usuń te linie z wiadomości commita i powtórz (bez Co-Authored-By, bez stopki „Generated with”)." >&2
+  exit 1
+fi
+
+exit 0
